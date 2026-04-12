@@ -36,10 +36,10 @@ namespace FG
             throw std::runtime_error("Failed to create IWbemLocator object");
     }
 
-    void ObtainServices(IWbemLocator*& locator, IWbemServices*& services)
+    void ObtainServices(IWbemLocator*& locator, IWbemServices*& services, const bstr_t& bstrNamespace)
     {
         HRESULT hres = locator->ConnectServer(
-            _bstr_t(L"ROOT\\CIMV2"), // WMI namespace
+            bstrNamespace,           // WMI namespace
             NULL,                    // User name
             NULL,                    // User password
             0,                       // Locale
@@ -65,6 +65,19 @@ namespace FG
             throw std::runtime_error("Could not set proxy blanket.");
     }
 
+    void SubscribeSink(IWbemServices*& services, IWbemObjectSink*& sink, const bstr_t& bstrQuery)
+    {
+        HRESULT hres = services->ExecNotificationQueryAsync(
+            bstr_t("WQL"),
+            bstrQuery,
+            WBEM_FLAG_SEND_STATUS,
+            NULL,
+            sink
+        );
+        if (FAILED(hres))
+            throw std::runtime_error("Subscribtion to events failed.");
+    }
+
     void Cleanup(IWbemLocator*& locator, IWbemServices*& services)
     {
         if (services)
@@ -74,5 +87,14 @@ namespace FG
             locator->Release();
 
         CoUninitialize();
+    }
+
+    void CleanSink(IWbemServices*& services, IWbemObjectSink*& sink)
+    {
+        if (!services || !sink)
+            return;
+
+        services->CancelAsyncCall(sink);
+        sink->Release();
     }
 }
