@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="ProcessesWatcher/ProcessesWatcher.vcxproj" />
+  <Project Path="ProcessesWatcher/ProcessesWatcher.vcxproj" Id="621a6086-0aa3-4a1d-8fb1-d90ec119549e" />
 </Solution>

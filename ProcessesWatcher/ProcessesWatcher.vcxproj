@@ -128,6 +128,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ProcessesWatcher.cpp" />
+    <ClCompile Include="WMIManager.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="WMIManager.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
