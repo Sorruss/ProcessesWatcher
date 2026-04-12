@@ -88,13 +88,4 @@ namespace FG
 
         CoUninitialize();
     }
-
-    void CleanSink(IWbemServices*& services, IWbemObjectSink*& sink)
-    {
-        if (!services || !sink)
-            return;
-
-        services->CancelAsyncCall(sink);
-        sink->Release();
-    }
 }

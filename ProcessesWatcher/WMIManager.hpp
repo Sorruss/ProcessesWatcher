@@ -15,5 +15,4 @@ namespace FG
 	void SubscribeSink(IWbemServices*& services, IWbemObjectSink*& sink, const bstr_t& bstrQuery);
 
 	void Cleanup(IWbemLocator*& locator, IWbemServices*& services);
-	void CleanSink(IWbemServices*& services, IWbemObjectSink*& sink);
 }

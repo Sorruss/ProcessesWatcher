@@ -128,12 +128,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Receivers\FileOutput.cpp" />
+    <ClCompile Include="Receivers\ConsoleOutput.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ProcessesWatcher.cpp" />
+    <ClCompile Include="Receivers\SoundOutput.cpp" />
     <ClCompile Include="WMIManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main.h" />
+    <ClInclude Include="Receivers\FileOutput.hpp" />
+    <ClInclude Include="Receivers\ConsoleOutput.hpp" />
+    <ClInclude Include="Receivers\SoundOutput.hpp" />
+    <ClInclude Include="Structs\EventData.hpp" />
+    <ClInclude Include="Interfaces\IWatcherSubscriber.hpp" />
     <ClInclude Include="ProcessesWatcher.hpp" />
     <ClInclude Include="WMIManager.hpp" />
   </ItemGroup>

@@ -5,6 +5,9 @@
 #include <iostream>
 #include <comdef.h>
 #include <Wbemidl.h>
+#include <vector>
+
+#include "Interfaces/IWatcherSubscriber.hpp"
 
 #pragma comment(lib, "wbemuuid.lib")
 
@@ -15,9 +18,24 @@ namespace FG
 	private:
 		// For counting all external objects which use this class' object
 		LONG m_refcounter;
+		std::vector<IWatcherSubscriber*> subscribers;
 
 	public:
 		ProcessesWatcher();
+		~ProcessesWatcher();
+
+		// -------------
+		// GENERAL STUFF
+
+		void Cleanup(IWbemServices*& services);
+
+		// ------------------------------
+		// OBSERVER RELATED FUNCTIONALITY
+
+		void Subscribe(IWatcherSubscriber* subscriber);
+		void Unsubscribe(IWatcherSubscriber* subscriber);
+		void NotifyOnEventStarted(const EventData& data);
+		void NotifyOnEventEnded(const EventData& data);
 
 		// -----------------------------
 		// INHERITED VIA IWbemObjectSink

@@ -3,8 +3,53 @@
 namespace FG
 {
 	ProcessesWatcher::ProcessesWatcher()
-		: m_refcounter(0)
+		: m_refcounter(0), subscribers()
 	{}
+
+	ProcessesWatcher::~ProcessesWatcher()
+	{
+		Release();
+	}
+
+	void ProcessesWatcher::Cleanup(IWbemServices*& services)
+	{
+		if (!services)
+			return;
+
+		services->CancelAsyncCall(this);
+	}
+
+	// ------------------------------
+	// OBSERVER RELATED FUNCTIONALITY
+
+	void ProcessesWatcher::Subscribe(IWatcherSubscriber* subscriber)
+	{
+		subscribers.push_back(subscriber);
+	}
+
+	void ProcessesWatcher::Unsubscribe(IWatcherSubscriber* subscriber)
+	{
+		subscribers.erase(std::remove(subscribers.begin(), subscribers.end(), subscriber), subscribers.end());
+	}
+
+	void ProcessesWatcher::NotifyOnEventStarted(const EventData& data)
+	{
+		for (int i = 0; i < subscribers.size(); i++)
+		{
+			subscribers[i]->OnEventStarted(data);
+		}
+	}
+
+	void ProcessesWatcher::NotifyOnEventEnded(const EventData& data)
+	{
+		for (int i = 0; i < subscribers.size(); i++)
+		{
+			subscribers[i]->OnEventEnded(data);
+		}
+	}
+
+	// -----------------------------
+	// INHERITED VIA IWbemObjectSink
 
 	HRESULT __stdcall ProcessesWatcher::QueryInterface(REFIID riid, void** ppvObject)
 	{
@@ -49,28 +94,36 @@ namespace FG
 		
 			if (objectClass == L"Win32_ProcessStartTrace")
 			{
-				// COUT STARTED PROCESS' NAME
+				EventData data;
+
+				// ADD STARTED PROCESS' NAME
 				if (SUCCEEDED(object->Get(L"ProcessName", 0, &variant, 0, 0)))
 				{
-					std::wcout << "[STARTED]: " << variant.bstrVal << '\t';
+					data.name = variant.bstrVal;
 					VariantClear(&variant);
 				}
 
-				// COUT STARTED PROCESS' ID
+				// ADD STARTED PROCESS' ID
 				if (SUCCEEDED(object->Get(L"ProcessId", 0, &variant, 0, 0)))
 				{
-					std::wcout << "id -> " << variant.ulVal << '\n';
+					data.id = variant.ulVal;
 					VariantClear(&variant);
 				}
+
+				NotifyOnEventStarted(data);
 			}
 			else if (objectClass == L"Win32_ProcessStopTrace")
 			{
-				// COUT ENDED PROCESS' NAME
+				EventData data;
+
+				// ADD ENDED PROCESS' NAME
 				if (SUCCEEDED(object->Get(L"ProcessName", 0, &variant, 0, 0)))
 				{
-					std::wcout << "[ENDED]: " << variant.bstrVal << '\n';
+					data.name = variant.bstrVal;
 					VariantClear(&variant);
 				}
+
+				NotifyOnEventEnded(data);
 			}
 		}
 
