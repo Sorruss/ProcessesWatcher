@@ -3,16 +3,21 @@
 #include <iostream>
 #include <comdef.h>
 #include <Wbemidl.h>
+#include <atlbase.h>
 
 #pragma comment(lib, "wbemuuid.lib")
 
 namespace FG
 {
-	void InitializeCOM();
-	void ObtainLocator(IWbemLocator*& locator);
-	void ObtainServices(IWbemLocator*& locator, IWbemServices*& services, const bstr_t& bstrNamespace);
+	class COMInitializer
+	{
+	public:
+		COMInitializer();
+		~COMInitializer();
+	};
 
-	void SubscribeSink(IWbemServices*& services, IWbemObjectSink*& sink, const bstr_t& bstrQuery);
+	CComPtr<IWbemLocator> ObtainLocator();
+	CComPtr<IWbemServices> ObtainServices(const CComPtr<IWbemLocator>& locator, const bstr_t& bstrNamespace);
 
-	void Cleanup(IWbemLocator*& locator, IWbemServices*& services);
+	void SubscribeSink(const CComPtr<IWbemServices>& services, IWbemObjectSink* sink, const bstr_t& bstrQuery);
 }

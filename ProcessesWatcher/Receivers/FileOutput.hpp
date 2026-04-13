@@ -18,11 +18,6 @@ namespace FG
 		void ClearFile();
 		void EnsureDirectoryExists();
 
-		// -------------
-		// SUPPLEMENTARY
-
-		std::wstring GetCurrentFormattedTime();
-
 		// --------------------------------
 		// INHERITED VIA IWatcherSubscriber
 

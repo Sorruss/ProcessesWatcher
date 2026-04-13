@@ -4,7 +4,7 @@
 #include <fstream>
 #include <format>
 
-#include <chrono>
+#include "../Helpers.hpp"
 
 namespace FG
 {
@@ -20,9 +20,9 @@ namespace FG
 
 	void FileOutput::ClearFile()
 	{
-		std::ofstream file(m_filename);
-		file.clear();
-		file.close();
+		std::ofstream file(m_filename, std::ios::trunc);
+		if (!file)
+			throw std::runtime_error("[FileOutput::ClearFile] Failed to open file.");
 	}
 
 	void FileOutput::EnsureDirectoryExists()
@@ -36,35 +36,24 @@ namespace FG
 		std::filesystem::create_directories(parent);
 	}
 
-	// -------------
-	// SUPPLEMENTARY
-
-	std::wstring FileOutput::GetCurrentFormattedTime()
-	{
-		auto now = std::chrono::system_clock::now();
-		auto time_t = std::chrono::system_clock::to_time_t(now);
-		std::tm tm;
-		localtime_s(&tm, &time_t);
-
-		std::wostringstream wss;
-		wss << std::put_time(&tm, L"%H:%M:%S");
-		return wss.str();
-	}
-
 	// --------------------------------
 	// INHERITED VIA IWatcherSubscriber
 
 	void FileOutput::OnEventStarted(const EventData& data)
 	{
 		std::wofstream file(m_filename, std::ios::app);
-		file << std::format(L"[STARTED] {} at time {}\n", data.name, GetCurrentFormattedTime());
-		file.close();
+		if (!file)
+			throw std::runtime_error("[FileOutput::OnEventStarted] Failed to open file.");
+
+		file << std::format(L"[STARTED] {} at time {}\n", data.name, FG::helpers::GetCurrentFormattedTime());
 	}
 
 	void FileOutput::OnEventEnded(const EventData & data)
 	{
 		std::wofstream file(m_filename, std::ios::app);
-		file << std::format(L"[ENDED] {} at time {}\n", data.name, GetCurrentFormattedTime());
-		file.close();
+		if (!file)
+			throw std::runtime_error("[FileOutput::OnEventEnded] Failed to open file.");
+
+		file << std::format(L"[ENDED] {} at time {}\n", data.name, FG::helpers::GetCurrentFormattedTime());
 	}
 }

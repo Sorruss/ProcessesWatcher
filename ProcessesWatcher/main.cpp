@@ -5,48 +5,54 @@
 #include "Receivers/SoundOutput.hpp"
 #include "Receivers/FileOutput.hpp"
 
+#include "Helpers.hpp"
+
 int main()
 {
-    IWbemLocator* locator = 0;
-    IWbemServices* services = 0;
+    FG::COMInitializer com;
+    CComPtr<IWbemLocator> locator = 0;
+    CComPtr<IWbemServices> services = 0;
     FG::ProcessesWatcher* watcher = new FG::ProcessesWatcher();
-    IWbemObjectSink* watcherSink = watcher;
 
     try
     {
         // INITIALIZATION OF COM AND WMI
-        FG::InitializeCOM();
-        FG::ObtainLocator(locator);
-        FG::ObtainServices(locator, services, L"ROOT\\CIMV2");
+        locator = FG::ObtainLocator();
+        services = FG::ObtainServices(locator, L"ROOT\\CIMV2");
 
         // SUBSCRIBTION TO WMI EVENTS
-        FG::SubscribeSink(services, watcherSink, L"SELECT * FROM Win32_ProcessStartTrace");
-        FG::SubscribeSink(services, watcherSink, L"SELECT * FROM Win32_ProcessStopTrace");
+        FG::SubscribeSink(services, watcher, L"SELECT * FROM Win32_ProcessStartTrace");
+        FG::SubscribeSink(services, watcher, L"SELECT * FROM Win32_ProcessStopTrace");
 
-        // SUBSCRIBTION TO CONSOLE OUTPUT
-        auto consoleOutput = std::make_unique<FG::ConsoleOutput>();
-        watcher->Subscribe(consoleOutput.get());
+        // SUBSCRIBTION TO PROCESSES WATCHER
+        auto consoleOutput = FG::helpers::CreateShared<FG::ConsoleOutput>();
+        auto soundOutput = FG::helpers::CreateShared<FG::SoundOutput>(L"./media/sfx/on.wav", L"./media/sfx/off.wav");
+        auto fileOutput = FG::helpers::CreateShared<FG::FileOutput>("./media/logs/fileOutput.txt");
 
-        // SUBSCRIBTION TO SOUND OUTPUT
-        auto soundOutput = std::make_unique<FG::SoundOutput>(L"./media/sfx/on.wav", L"./media/sfx/off.wav");
-        watcher->Subscribe(soundOutput.get());
+        if (consoleOutput) watcher->Subscribe(consoleOutput);
+        if (soundOutput) watcher->Subscribe(soundOutput);
+        if (fileOutput) watcher->Subscribe(fileOutput);
 
-        // SUBSCRIBTION TO FILE OUTPUT
-        auto fileOutput = std::make_unique<FG::FileOutput>("./media/logs/fileOutput.txt");
-        watcher->Subscribe(fileOutput.get());
-
-        std::cin.get();
+        Sleep(INFINITE);
     }
     catch (const std::runtime_error& error)
     {
         std::cerr << "[ERROR] " << error.what() << '\n';
+    }
+    catch (const std::exception& exception)
+    {
+        std::cerr << "[EXCEPTION] " << exception.what() << '\n';
     }
     catch (...)
     {
         std::cerr << "[UNKNOWN ERROR]\n";
     }
 
-    watcher->Cleanup(services);
-    FG::Cleanup(locator, services);
+    if (services && watcher)
+    {
+        services->CancelAsyncCall(watcher);
+        watcher->Release();
+    }
+    
     return 0;
 }

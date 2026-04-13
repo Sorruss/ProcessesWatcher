@@ -8,44 +8,69 @@ namespace FG
 
 	ProcessesWatcher::~ProcessesWatcher()
 	{
-		Release();
-	}
-
-	void ProcessesWatcher::Cleanup(IWbemServices*& services)
-	{
-		if (!services)
-			return;
-
-		services->CancelAsyncCall(this);
+		
 	}
 
 	// ------------------------------
 	// OBSERVER RELATED FUNCTIONALITY
 
-	void ProcessesWatcher::Subscribe(IWatcherSubscriber* subscriber)
+	void ProcessesWatcher::Subscribe(std::shared_ptr<IWatcherSubscriber> subscriber)
 	{
 		subscribers.push_back(subscriber);
 	}
 
-	void ProcessesWatcher::Unsubscribe(IWatcherSubscriber* subscriber)
-	{
-		subscribers.erase(std::remove(subscribers.begin(), subscribers.end(), subscriber), subscribers.end());
-	}
-
 	void ProcessesWatcher::NotifyOnEventStarted(const EventData& data)
 	{
+		CleanupExpiredSubscribers();
+
 		for (int i = 0; i < subscribers.size(); i++)
 		{
-			subscribers[i]->OnEventStarted(data);
+			auto subscriber = subscribers[i].lock();
+			if (subscriber == nullptr)
+				continue;
+
+			try
+			{
+				subscriber->OnEventStarted(data);
+			}
+			catch (const std::runtime_error& error)
+			{
+				std::cout << "[ProcessesWatcher::NotifyOnEventStarted] " << error.what() << '\n';
+				continue;
+			}
 		}
 	}
 
 	void ProcessesWatcher::NotifyOnEventEnded(const EventData& data)
 	{
+		CleanupExpiredSubscribers();
+
 		for (int i = 0; i < subscribers.size(); i++)
 		{
-			subscribers[i]->OnEventEnded(data);
+			auto subscriber = subscribers[i].lock();
+			if (subscriber == nullptr)
+				continue;
+
+			try
+			{
+				subscriber->OnEventEnded(data);
+			}
+			catch (const std::runtime_error& error)
+			{
+				std::cout << "[ProcessesWatcher::NotifyOnEventStarted] " << error.what() << '\n';
+				continue;
+			}
 		}
+	}
+
+	void ProcessesWatcher::CleanupExpiredSubscribers()
+	{
+		subscribers.erase(std::remove_if(subscribers.begin(), subscribers.end(), 
+			[](const std::weak_ptr<IWatcherSubscriber>& weak) {
+				return weak.expired();
+			}),
+			subscribers.end()
+		);
 	}
 
 	// -----------------------------
@@ -71,7 +96,7 @@ namespace FG
 	ULONG __stdcall ProcessesWatcher::Release(void)
 	{
 		LONG newRefcounter = InterlockedDecrement(&m_refcounter);
-		if (newRefcounter == 0)
+		if (newRefcounter <= 0)
 			delete this;
 		return newRefcounter;
 	}
@@ -81,34 +106,23 @@ namespace FG
 		for (long i = 0; i < lObjectCount; i++)
 		{
 			IWbemClassObject* object = apObjArray[i];
-			VARIANT variant;
-			VariantInit(&variant);
+			_variant_t variant;
 
 			if (FAILED(object->Get(L"__CLASS", 0, &variant, 0, 0)))
-			{
-				VariantClear(&variant);
 				continue;
-			}
+
 			std::wstring objectClass = variant.bstrVal;
-			VariantClear(&variant);
-		
 			if (objectClass == L"Win32_ProcessStartTrace")
 			{
 				EventData data;
 
 				// ADD STARTED PROCESS' NAME
 				if (SUCCEEDED(object->Get(L"ProcessName", 0, &variant, 0, 0)))
-				{
 					data.name = variant.bstrVal;
-					VariantClear(&variant);
-				}
 
 				// ADD STARTED PROCESS' ID
 				if (SUCCEEDED(object->Get(L"ProcessId", 0, &variant, 0, 0)))
-				{
 					data.id = variant.ulVal;
-					VariantClear(&variant);
-				}
 
 				NotifyOnEventStarted(data);
 			}
@@ -118,10 +132,7 @@ namespace FG
 
 				// ADD ENDED PROCESS' NAME
 				if (SUCCEEDED(object->Get(L"ProcessName", 0, &variant, 0, 0)))
-				{
 					data.name = variant.bstrVal;
-					VariantClear(&variant);
-				}
 
 				NotifyOnEventEnded(data);
 			}

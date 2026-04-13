@@ -2,8 +2,8 @@
 
 namespace FG
 {
-	void InitializeCOM()
-	{
+    COMInitializer::COMInitializer()
+    {
         // COM INIIALIZATION
         HRESULT hres = CoInitializeEx(0, COINIT_MULTITHREADED);
         if (FAILED(hres))
@@ -23,10 +23,16 @@ namespace FG
         );
         if (FAILED(hres))
             throw std::runtime_error("Failed to initialize security");
-	}
+    }
 
-    void ObtainLocator(IWbemLocator*& locator)
+    COMInitializer::~COMInitializer()
     {
+        CoUninitialize();
+    }
+
+    CComPtr<IWbemLocator> ObtainLocator()
+    {
+        CComPtr<IWbemLocator> locator = 0;
         HRESULT hres = CoCreateInstance(
             CLSID_WbemLocator,
             0,
@@ -34,10 +40,13 @@ namespace FG
             IID_IWbemLocator, (LPVOID*)&locator);
         if (FAILED(hres))
             throw std::runtime_error("Failed to create IWbemLocator object");
+
+        return locator;
     }
 
-    void ObtainServices(IWbemLocator*& locator, IWbemServices*& services, const bstr_t& bstrNamespace)
+    CComPtr<IWbemServices> ObtainServices(const CComPtr<IWbemLocator>& locator, const bstr_t& bstrNamespace)
     {
+        CComPtr<IWbemServices> services = 0;
         HRESULT hres = locator->ConnectServer(
             bstrNamespace,           // WMI namespace
             NULL,                    // User name
@@ -63,9 +72,11 @@ namespace FG
         );
         if (FAILED(hres))
             throw std::runtime_error("Could not set proxy blanket.");
+
+        return services;
     }
 
-    void SubscribeSink(IWbemServices*& services, IWbemObjectSink*& sink, const bstr_t& bstrQuery)
+    void SubscribeSink(const CComPtr<IWbemServices>& services, IWbemObjectSink* sink, const bstr_t& bstrQuery)
     {
         HRESULT hres = services->ExecNotificationQueryAsync(
             bstr_t("WQL"),
@@ -75,17 +86,9 @@ namespace FG
             sink
         );
         if (FAILED(hres))
-            throw std::runtime_error("Subscribtion to events failed.");
-    }
-
-    void Cleanup(IWbemLocator*& locator, IWbemServices*& services)
-    {
-        if (services)
-            services->Release();
-
-        if (locator)
-            locator->Release();
-
-        CoUninitialize();
+        {
+            services->CancelAsyncCall(sink);
+            throw std::runtime_error("[WMIManager::SubscribeSink] Subscribtion to events failed.");
+        }
     }
 }

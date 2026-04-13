@@ -128,6 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="Receivers\FileOutput.cpp" />
     <ClCompile Include="Receivers\ConsoleOutput.cpp" />
     <ClCompile Include="main.cpp" />
@@ -136,6 +137,7 @@
     <ClCompile Include="WMIManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Helpers.hpp" />
     <ClInclude Include="Receivers\FileOutput.hpp" />
     <ClInclude Include="Receivers\ConsoleOutput.hpp" />
     <ClInclude Include="Receivers\SoundOutput.hpp" />

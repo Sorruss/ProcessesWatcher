@@ -13,6 +13,8 @@ namespace FG
 	public:
 		SoundOutput(const std::wstring& soundOn, const std::wstring& soundOff);
 
+		bool CheckIfFileExists(const std::wstring& filename);
+
 		// --------------------------------
 		// INHERITED VIA IWatcherSubscriber
 
