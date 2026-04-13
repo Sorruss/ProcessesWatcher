@@ -13,6 +13,7 @@ int main()
     CComPtr<IWbemLocator> locator = 0;
     CComPtr<IWbemServices> services = 0;
     FG::ProcessesWatcher* watcher = new FG::ProcessesWatcher();
+    CComPtr<IWbemObjectSink> sink = watcher;    // should destroy 'watcher' as well
 
     try
     {
@@ -49,10 +50,7 @@ int main()
     }
 
     if (services && watcher)
-    {
         services->CancelAsyncCall(watcher);
-        watcher->Release();
-    }
     
     return 0;
 }
